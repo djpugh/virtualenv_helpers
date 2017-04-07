@@ -1,4 +1,9 @@
-"""Classes for specific editors"""
+"""
+editors.py
+**********
+
+Classes for specific editors to open them with the virtual environment in that folder
+"""
 import subprocess
 import os
 import glob
@@ -27,16 +32,16 @@ class SublimeText3(Editor):
 
     @property
     def executable(self):
-        if 'win' in sys.platform:
+        if 'win32' in sys.platform:
             path = 'C:\\Program Files\\Sublime Text 3\\subl.exe'
         else:
             try:
                 path = subprocess.check_output(['which', 'sublime_text'])
-            except:
+            except Exception:
                 # Check alternate path
                 try:
                     path = subprocess.check_output(['which', 'sublime_text3'])
-                except:
+                except Exception:
                     pass
         if os.path.exists(path):
             return path

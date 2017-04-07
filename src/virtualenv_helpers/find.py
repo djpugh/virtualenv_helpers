@@ -1,7 +1,9 @@
 """
+find.py
+*******
 Find the virtual environment path based on either
 name/path or recursive searching of the path or from the VENV_DIR
-environmental variable directory.  
+environmental variable directory.
 """
 import os
 
@@ -10,6 +12,16 @@ virtualenv_dir = os.environ.get('VENV_DIR', default_env_dir)
 
 
 def recusive_check(check_function, python_version, max_levels=None):
+    """
+    Recursively check a path to see if a virtual environment exists
+
+    Args:
+        check_function: the function to use to check if a virtual environment exists
+        python_version: python version string
+
+    Keyword Args:
+        max_levels: integer number of levels to check (if None, checks to the system root)
+    """
     venv_path = None
     matching_path = None
     if os.path.exists(virtualenv_dir):
@@ -33,6 +45,14 @@ def recusive_check(check_function, python_version, max_levels=None):
 
 
 def find_venv_dir_env(python_version, current_dir):
+    """
+    Find a virtual environment in the virtual environment dir set using the
+    VENV_DIR environment variable (defaults to ~/virtualenvs)
+
+    Args:
+        python_version: python version string
+        current_dir: the current directory being checked
+    """
     test_dir = os.path.split(current_dir)[-1]
     if python_version is None:
         test_venv_dir_path = os.path.join(virtualenv_dir, test_dir)
@@ -44,6 +64,14 @@ def find_venv_dir_env(python_version, current_dir):
 
 
 def find_local_env(python_version, current_dir=os.getcwd(), **kwargs):
+    """
+    Find a virtual environment in the local directory, expected to be called
+    .venv
+
+    Args:
+        python_version: python version string
+        current_dir: the current directory being checked
+    """
     venv_name = '.venv'
     if python_version is not None:
         venv_name = '{}-{}'.format(venv_name, python_version)
@@ -54,14 +82,41 @@ def find_local_env(python_version, current_dir=os.getcwd(), **kwargs):
 
 
 def find_recursive_path_venv(python_version, max_levels=None):
+    """
+    Recursively check for a virtual environment in the virtual environment dir
+    set using the VENV_DIR environment variable (defaults to ~/virtualenvs)
+
+    Args:
+        python_version: python version string
+
+    Keyword Args:
+        max_levels: integer number of levels to check (if None, checks to the system root)
+    """
     return recusive_check(find_venv_dir_env, python_version, max_levels)
 
 
 def find_recursive_path_local_env(python_version, max_levels=None):
+    """
+    Recursively check for a local virtual environment folder (.venv)
+
+    Args:
+        python_version: python version string
+
+    Keyword Args:
+        max_levels: integer number of levels to check (if None, checks to the system root)
+    """
     return recusive_check(find_local_env, python_version, max_levels)
 
 
 def find_virtualenv(python_version, max_levels=None):
+    """
+    Find a virual environment directory for the current (or higher) path
+    Args:
+        python_version: python version string
+
+    Keyword Args:
+        max_levels: integer number of levels to check (if None, checks to the system root)
+    """
     venv_dir = None
     matching_path = None
     for function in [find_local_env, find_recursive_path_venv, find_recursive_path_local_env]:
@@ -73,6 +128,13 @@ def find_virtualenv(python_version, max_levels=None):
 
 
 def check_input_path(virtualenv_path, python_version):
+    """
+    Check if the specified path exists
+    Args:
+        virtualenv_path: specified path to a virtual environment (may not
+                         include the python version)
+        python_version: python version string
+    """
     version_path = '{}-{}'.join(virtualenv_path, python_version)
     if os.path.exists(version_path):
         return os.path.abspath(version_path)
@@ -86,6 +148,18 @@ def check_input_path(virtualenv_path, python_version):
 
 
 def get_virtualenv_path(python_version, virtualenv_path=None, max_levels=None):
+    """
+    Get the virtual environment path either by checking if it exists or searching
+    for it.
+    Args:
+        python_version: python version string
+
+    Keyword Args:
+        virtualenv_path: specified path to a virtual environment (may not
+                         include the python version)
+        max_levels: integer number of levels to check (if None, checks to the system root)
+
+    """
     if virtualenv_path is not None:
         matching_path = None
         virtualenv_path = check_input_path(virtualenv_path, python_version)

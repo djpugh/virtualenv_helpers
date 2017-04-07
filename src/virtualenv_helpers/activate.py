@@ -1,4 +1,6 @@
 """
+activate.py
+***********
 Activate a virtualenvironment from the command line, based on either
 name/path or recursive searching of the path or from the VENV_DIR
 environmental variable directory.
@@ -19,18 +21,31 @@ else:
     script_dir = 'bin'
 
 
-def parse_options(args=None):
+def create_parser():
+    """Create the command line parser"""
     parser = argparse.ArgumentParser(description='Activate a python virtual environment by searching for a local environment or looking in the VENV_DIR directory')
     parser.add_argument('--path', '--virtualenv-path', dest='virtualenv_path', help='Path to the virtual environment to activate', default=None)
     parser.add_argument('path', help='Path to the virtual environment to activate', default=None, nargs='?')
     parser.add_argument('-p', '--py', '--py-version', dest='python_version', help='Python version of the virtual environment to activate', default=None)
-    parser.add_argument('-e', '--editor', dest='editor', help="Editor to load with the virtualenv", default=os.environ.get('VENV_EDITOR', None))
-    parser.add_argument('-s', '--show-editor', dest='show_editor', action="store_true", help="Show the editor when working on the virtualenv", default=os.environ.get('VENV_EDITOR_SHOW', None))
-    parser.add_argument('-x', '--no-show-editor', dest='no_show_editor', action="store_true", help="Don't show the editor when working on the virtualenv", default=False)
+    parser.add_argument('-e', '--editor', dest='editor', help="Editor to load with the virtual environment", default=os.environ.get('VENV_EDITOR', None))
+    parser.add_argument('-s', '--show-editor', dest='show_editor', action="store_true", help="Show the editor when working on the virtual environment", default=os.environ.get('VENV_EDITOR_SHOW', None))
+    parser.add_argument('-x', '--no-show-editor', dest='no_show_editor', action="store_true", help="Don't show the editor when working on the virtual environment", default=False)
     parser.add_argument('-V', '--version', action="version", version="%(prog)s {}".format(__version__))
+    return parser
+
+
+def parse_options(args=None):
+    """
+    Parse input arguments for activating the virtual environment
+
+    Keyword Arguments:
+        args: list/tuple of arguments, if None, then the command line
+              arguments (sys.argv) are used
+    """
+    parser = create_parser()
     options = parser.parse_args(args)
     if options.path is not None and options.virtualenv_path is not None:
-        parser.error('Both --path and positional argument provided for virtualenv path, only should be used')
+        parser.error('Both --path and positional argument provided for virtual environment path, only one should be used')
     if options.python_version is not None:
         python_version = options.python_version.lower().lstrip('py').lstrip('thon')
     else:
@@ -49,6 +64,15 @@ def parse_options(args=None):
 
 
 def activate(args=None, shell=True):
+    """
+    Activate the virtual environment.
+
+    Keyword Arguments:
+        args: list/tuple of arguments, if None, then the command line
+              arguments (sys.argv) are used:
+        shell: boolean flag to open the environment in a new shell
+
+    """
     options, python_version = parse_options(args)
     virtualenv_path, matching_path = get_virtualenv_path(options.virtualenv_path, python_version)
     if virtualenv_path is not None:
@@ -59,7 +83,7 @@ def activate(args=None, shell=True):
         env = os.environ.copy()
         env['PATH'] = ';'.join(path)
         shell, args, script_name = get_shell()
-        print('Activating virtualenv {}. Use exit to quit the virtualenv.'.format(virtualenv_path))
+        print('Activating virtual environment {}. Use exit to quit the virtual environment.'.format(virtualenv_path))
         if options.show_editor and matching_path is not None:
             options.editor.start(matching_path, virtualenv_path)
         try:
@@ -68,11 +92,12 @@ def activate(args=None, shell=True):
         except KeyboardInterrupt:
             pass
     else:
-        print('No virtualenv found')
+        print('No virtual environment found')
 
 
 def get_shell():
-    if 'win' in sys.platform:
+    """Get the shell type"""
+    if 'win32' in sys.platform:
         if os.getenv('SHELL') is not None:
             # Git bash
             shell = os.getenv('SHELL')
