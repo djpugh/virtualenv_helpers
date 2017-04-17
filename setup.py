@@ -29,7 +29,7 @@ kwargs = dict(
     description=__description__,
     author=__maintainer__,
     requires=['virtualenv', 'pip'],
-    tests_require=tests_require,
+    test_suite="virtualenv_helpers.tests.unit",
     install_requires=['setuptools'],
     author_email=__email__,
     entry_points={'console_scripts': [
@@ -37,7 +37,6 @@ kwargs = dict(
         '{} = virtualenv_helpers.create:create'.format(virtualenv_console)]},
     keywords=[],
     classifiers=[],
-    test_suite='virtualenv_helpers.tests.test_suite',
     package_data={'': ['*.txt',
                        'docs/source/*.rst',
                        'docs/man/*',
