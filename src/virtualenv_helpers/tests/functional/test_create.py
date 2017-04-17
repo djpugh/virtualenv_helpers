@@ -21,8 +21,6 @@ from virtualenv_helpers.tests.contexts import Quiet
 from virtualenv_helpers.create import create
 from virtualenv_helpers.create import install_default_wheels
 
-VERBOSITY = 2
-
 
 class CreateTestCase(unittest.TestCase):
     @unittest.skipIf(not virtualenv, 'Test requires virtualenv')
