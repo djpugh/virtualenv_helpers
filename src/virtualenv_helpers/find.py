@@ -7,11 +7,14 @@ environmental variable directory.
 """
 import os
 
-default_env_dir = os.path.join(os.path.expanduser('~'), 'virtualenvs')
-virtualenv_dir = os.environ.get('VENV_DIR', default_env_dir)
+
+def get_virtualenv_dir():
+    """Get the virtual environment from the environmental variables"""
+    default_env_dir = os.path.join(os.path.expanduser('~'), 'virtualenvs')
+    return os.environ.get('VENV_DIR', default_env_dir)
 
 
-def recusive_check(check_function, python_version, max_levels=None):
+def recursive_check(check_function, python_version, max_levels=None):
     """
     Recursively check a path to see if a virtual environment exists
 
@@ -24,7 +27,7 @@ def recusive_check(check_function, python_version, max_levels=None):
     """
     venv_path = None
     matching_path = None
-    if os.path.exists(virtualenv_dir):
+    if os.path.exists(get_virtualenv_dir()):
         # Check if the virtualenv dir exists
         current_dir = os.getcwd()
         can_rise = True
@@ -55,15 +58,15 @@ def find_venv_dir_env(python_version, current_dir):
     """
     test_dir = os.path.split(current_dir)[-1]
     if python_version is None:
-        test_venv_dir_path = os.path.join(virtualenv_dir, test_dir)
+        test_venv_dir_path = os.path.join(get_virtualenv_dir(), test_dir)
     else:
-        test_venv_dir_path = os.path.join(virtualenv_dir, '{}-{}'.format(test_dir, python_version))
+        test_venv_dir_path = os.path.join(get_virtualenv_dir(), '{}-{}'.format(test_dir, python_version))
     if os.path.exists(test_venv_dir_path):
         return test_venv_dir_path, current_dir
     return None, None
 
 
-def find_local_env(python_version, current_dir=os.getcwd(), **kwargs):
+def find_local_env(python_version, current_dir=None, **kwargs):
     """
     Find a virtual environment in the local directory, expected to be called
     .venv
@@ -74,7 +77,13 @@ def find_local_env(python_version, current_dir=os.getcwd(), **kwargs):
     """
     venv_name = '.venv'
     if python_version is not None:
-        venv_name = '{}-{}'.format(venv_name, python_version)
+        version_venv_name = '{}-{}'.format(venv_name, python_version)
+    if current_dir is None:
+        current_dir = os.getcwd()
+    if python_version is not None:
+        test_venv_dir_path = os.path.join(current_dir, version_venv_name)
+        if os.path.exists(test_venv_dir_path):
+            return test_venv_dir_path, current_dir
     test_venv_dir_path = os.path.join(current_dir, venv_name)
     if os.path.exists(test_venv_dir_path):
         return test_venv_dir_path, current_dir
@@ -92,7 +101,7 @@ def find_recursive_path_venv(python_version, max_levels=None):
     Keyword Args:
         max_levels: integer number of levels to check (if None, checks to the system root)
     """
-    return recusive_check(find_venv_dir_env, python_version, max_levels)
+    return recursive_check(find_venv_dir_env, python_version, max_levels)
 
 
 def find_recursive_path_local_env(python_version, max_levels=None):
@@ -105,7 +114,7 @@ def find_recursive_path_local_env(python_version, max_levels=None):
     Keyword Args:
         max_levels: integer number of levels to check (if None, checks to the system root)
     """
-    return recusive_check(find_local_env, python_version, max_levels)
+    return recursive_check(find_local_env, python_version, max_levels)
 
 
 def find_virtualenv(python_version, max_levels=None):
@@ -135,15 +144,17 @@ def check_input_path(virtualenv_path, python_version):
                          include the python version)
         python_version: python version string
     """
-    version_path = '{}-{}'.join(virtualenv_path, python_version)
+    if virtualenv_path is None:
+        return None
+    version_path = '{}-{}'.format(virtualenv_path, python_version)
     if os.path.exists(version_path):
         return os.path.abspath(version_path)
     elif os.path.exists(virtualenv_path):
         return os.path.abspath(virtualenv_path)
-    elif os.path.exists(os.path.join(virtualenv_dir, virtualenv_path)):
-        return os.path.join(virtualenv_dir, virtualenv_path)
-    elif os.path.exists(os.path.join(virtualenv_dir, version_path)):
-        return os.path.join(virtualenv_dir, version_path)
+    elif os.path.exists(os.path.join(get_virtualenv_dir(), virtualenv_path)):
+        return os.path.join(get_virtualenv_dir(), virtualenv_path)
+    elif os.path.exists(os.path.join(get_virtualenv_dir(), version_path)):
+        return os.path.join(get_virtualenv_dir(), version_path)
     return None
 
 

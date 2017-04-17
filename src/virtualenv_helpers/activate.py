@@ -15,7 +15,7 @@ from .find import get_virtualenv_path
 from . import __version__
 from .editors import editors
 
-if 'win' in sys.platform:
+if 'win32' in sys.platform:
     script_dir = 'Scripts'
 else:
     script_dir = 'bin'
@@ -27,7 +27,7 @@ def create_parser():
     parser.add_argument('--path', '--virtualenv-path', dest='virtualenv_path', help='Path to the virtual environment to activate', default=None)
     parser.add_argument('path', help='Path to the virtual environment to activate', default=None, nargs='?')
     parser.add_argument('-p', '--py', '--py-version', dest='python_version', help='Python version of the virtual environment to activate', default=None)
-    parser.add_argument('-e', '--editor', dest='editor', help="Editor to load with the virtual environment", default=os.environ.get('VENV_EDITOR', None))
+    parser.add_argument('-e', '--editor', nargs='?', dest='editor', help="Editor to load with the virtual environment", default=os.environ.get('VENV_EDITOR', None))
     parser.add_argument('-s', '--show-editor', dest='show_editor', action="store_true", help="Show the editor when working on the virtual environment", default=os.environ.get('VENV_EDITOR_SHOW', None))
     parser.add_argument('-x', '--no-show-editor', dest='no_show_editor', action="store_true", help="Don't show the editor when working on the virtual environment", default=False)
     parser.add_argument('-V', '--version', action="version", version="%(prog)s {}".format(__version__))
@@ -63,18 +63,17 @@ def parse_options(args=None):
     return options, python_version
 
 
-def activate(args=None, shell=True):
+def activate(args=None):
     """
     Activate the virtual environment.
 
     Keyword Arguments:
         args: list/tuple of arguments, if None, then the command line
               arguments (sys.argv) are used:
-        shell: boolean flag to open the environment in a new shell
 
     """
     options, python_version = parse_options(args)
-    virtualenv_path, matching_path = get_virtualenv_path(options.virtualenv_path, python_version)
+    virtualenv_path, matching_path = get_virtualenv_path(python_version, options.virtualenv_path,)
     if virtualenv_path is not None:
         path = os.environ.get('PATH', '').split(';')
         path = [u for u in path if 'python' not in u.lower()]

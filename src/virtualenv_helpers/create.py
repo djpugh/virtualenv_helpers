@@ -15,9 +15,7 @@ import traceback
 from . import __version__
 
 default_env_dir = os.path.join(os.path.expanduser('~'), 'virtualenvs')
-virtualenv_dir = os.environ.get('VENV_DIR', default_env_dir)
 default_wheels_dir = os.path.join(os.path.expanduser('~'), 'virtualenv_default_wheels')
-virtualenv_dir = os.environ.get('VENV_DEFAULT_WHEELS_DIR', default_wheels_dir)
 is_windows = sys.platform.startswith('win')
 
 if is_windows:
@@ -32,11 +30,12 @@ else:
 
 def create_parser():
     """Create the command line parser"""
+    virtualenv_dir = os.environ.get('VENV_DIR', default_env_dir)
     parser = argparse.ArgumentParser(description="Create a virtual environment for the current directory")
     parser.add_argument(dest='name', metavar='Name', type=str, nargs='?', help='Name of the virtual environment', default=None)
     parser.add_argument('-l', '--local', action="store_true", dest='local', help="Create the virtual environment folder locally - .venv")
     parser.add_argument('-d', '--directory', dest='virtualenv_dir', help="Directory to store the virtual environment directory", default=virtualenv_dir)
-    parser.add_argument('-p', '--py-version', '--python-version', dest='py_version', help="Create a virtualenv environment for a specific python version", default=None, nargs='+', action='append')
+    parser.add_argument('-p', '--py-version', '--python-version', dest='python_versions', help="Create a virtualenv environment for a specific python version", default=None, nargs='+', action='append')
     parser.add_argument('-3', '--py3', '--py3.5', dest='py35', help="Create a virtual environment for python 2.7", default=False, action="store_true")
     parser.add_argument('-2', '--py2', '--py2.7', dest='py27', help="Create a virtual environment for python 3.5", default=False, action="store_true")
     parser.add_argument('-w', '--wheels', dest='default_wheels', help="Install the default wheels found in ~/virtualenv_default_wheels or VENV_DEFAULT_WHEELS_DIR", default=False, action="store_true")
@@ -76,6 +75,9 @@ def parse_options(args=None):
             print('\nvirtualenv options can also be passed in, these are:')
             print('\n'.join(output.split('Options:')[-1].splitlines()[2:]))
             raise e
+    else:
+        parser = create_parser()
+        options, unknown = parser.parse_known_args(args)
     return options, unknown
 
 
@@ -101,9 +103,9 @@ def get_python_versions(options):
         python_versions.append('2.7')
     if options.py36:
         python_versions.append('3.6')
-    if options.py_version is not None:
+    if options.python_versions is not None:
         versions = []
-        for ver in options.py_version:
+        for ver in options.python_versions:
             versions += ver  # This is always a list due to nargs='+' so can extend the versions list
         # Check the versions are correct
         python_versions += [ver.lower().lstrip('py').lstrip('thon') for ver in versions]  # Split lstrip in case of py2.7 or python2.7
@@ -156,23 +158,27 @@ def install_default_wheels(version, version_virtualenv_dir):
         version: python version string for the virtual environment
         version_virtualenv_dir: Directory of the virtual environment directory
     """
-    pip = os.path.join(version_virtualenv_dir, 'Scripts', 'pip.exe')
-    if not os.path.exists(default_wheels_dir):
+    if sys.platform.startswith('win32'):
+        pip = os.path.join(version_virtualenv_dir, 'Scripts', 'pip.exe')
+    else:
+        pip = os.path.join(version_virtualenv_dir, 'bin', 'pip')
+    wheels_dir = os.environ.get('VENV_DEFAULT_WHEELS_DIR', default_wheels_dir)
+    if not os.path.exists(wheels_dir):
         return  # Default wheels dir not found
     cpy_version = '-cp{}'.format(version.replace('.', ''))
     py_version = '-py{}'.format(version.split('.')[0])
     py_version2 = '.py{}-'.format(version.split('.')[0])
-    wheels = [u for u in glob.glob(os.path.join(default_wheels_dir, '*.whl')) if 'numpy' not in u and (cpy_version in os.path.split(u)[-1] or py_version in os.path.split(u)[-1] or py_version2 in os.path.split(u)[-1])]
+    wheels = [u for u in glob.glob(os.path.join(wheels_dir, '*.whl')) if 'numpy' not in u and (cpy_version in os.path.split(u)[-1] or py_version in os.path.split(u)[-1] or py_version2 in os.path.split(u)[-1])]
     argv = [pip, 'install']
-    opts = ['--find-links='+default_wheels_dir, '--prefix='+version_virtualenv_dir, '-U']
-    numpy = [u for u in glob.glob(os.path.join(default_wheels_dir, 'numpy*.whl')) if (cpy_version in os.path.split(u)[-1] or py_version in os.path.split(u)[-1] or py_version2 in os.path.split(u)[-1])]
+    opts = ['--find-links='+wheels_dir, '--prefix='+version_virtualenv_dir, '-U']
+    numpy = [u for u in glob.glob(os.path.join(wheels_dir, 'numpy*.whl')) if (cpy_version in os.path.split(u)[-1] or py_version in os.path.split(u)[-1] or py_version2 in os.path.split(u)[-1])]
     if len(numpy):
         numpy = numpy[0]
         subprocess.call(argv+[numpy]+opts, stdout=sys.stdout, stderr=sys.stderr)
     for wheel in wheels:
         subprocess.call(argv+[wheel]+opts, stdout=sys.stdout, stderr=sys.stderr)
     if is_windows:
-        exes = [u for u in glob.glob(os.path.join(default_wheels_dir, '*.exe')) if 'numpy' not in u and (cpy_version in os.path.split(u)[-1] or py_version in os.path.split(u)[-1] or py_version2 in os.path.split(u)[-1])]
+        exes = [u for u in glob.glob(os.path.join(wheels_dir, '*.exe')) if 'numpy' not in u and (cpy_version in os.path.split(u)[-1] or py_version in os.path.split(u)[-1] or py_version2 in os.path.split(u)[-1])]
         easy_install = os.path.join(version_virtualenv_dir, 'Scripts', 'easy_install.exe')
         # Use easy_install to install any exe files
         for exe in exes:
@@ -219,7 +225,6 @@ def create(args=None):
         executable = get_python_executable(version)
         # Needs to have the path to the python executable for that version - get it's location from the registry
         version_virtualenv_dir = '{}-{}'.format(virtualenv_dir, version)
-        print(argv + [version_virtualenv_dir, '--python', executable])
         subprocess.call(argv + [version_virtualenv_dir, '--python', executable], stdout=sys.stdout, stderr=sys.stderr)
         if options.default_wheels and version_virtualenv_dir:
             # Install into target dir

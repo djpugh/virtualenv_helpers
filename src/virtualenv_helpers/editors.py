@@ -53,24 +53,26 @@ class SublimeText3(Editor):
         flags = ['-n']
         # Create the project file if required and then update
         # Check if a .sublime-project exists in the folder path
-        if len(glob.glob(os.path.join(self.folder_path, '*.sublime-project'))) == 1:
-            project_file = glob.glob(os.path.join(self.folder_path, '*.sublime-project'))[0]
-            project_dict = json.loads(open(project_file.read()))
-            # update the paths in the folders to be absolute paths to the folder_path
-            if 'folders' in project_dict.keys():
-                for folder in project_dict['folders']:
-                    if 'path' in folder and folder['path'][0] == '.':
-                        folder['path'][0] = os.path.abspath(self.folder_path)
-        else:
-            default_project = {"folders": [{"path": "."}]}
-            project_dict = default_project.copy()
-            project_dict['folders'] = [{"path": os.path.abspath(self.folder_path)}]
-        project_dict['virtualenv'] = self.virtualenv_path
-        virtualenv_project_filename = '{} [{}].sublime-project'.format(os.path.split(os.path.abspath(self.folder_path))[-1],
-                                                                       os.path.split(self.virtualenv_path)[-1])
-        virtualenv_project_file = os.path.join(tempfile.mkdtemp(), virtualenv_project_filename)
-        open(virtualenv_project_file, 'w').write(json.dumps(project_dict))
-        return flags + ['--project', virtualenv_project_file]
+        if self.virtualenv_path is not None:
+            if len(glob.glob(os.path.join(self.folder_path, '*.sublime-project'))) == 1:
+                project_file = glob.glob(os.path.join(self.folder_path, '*.sublime-project'))[0]
+                project_dict = json.loads(open(project_file.read()))
+                # update the paths in the folders to be absolute paths to the folder_path
+                if 'folders' in project_dict.keys():
+                    for folder in project_dict['folders']:
+                        if 'path' in folder and folder['path'][0] == '.':
+                            folder['path'][0] = os.path.abspath(self.folder_path)
+            else:
+                default_project = {"folders": [{"path": "."}]}
+                project_dict = default_project.copy()
+                project_dict['folders'] = [{"path": os.path.abspath(self.folder_path)}]
+            project_dict['virtualenv'] = self.virtualenv_path
+            virtualenv_project_filename = '{} [{}].sublime-project'.format(os.path.split(os.path.abspath(self.folder_path))[-1],
+                                                                           os.path.split(self.virtualenv_path)[-1])
+            virtualenv_project_file = os.path.join(tempfile.mkdtemp(), virtualenv_project_filename)
+            open(virtualenv_project_file, 'w').write(json.dumps(project_dict))
+            flags += ['--project', virtualenv_project_file]
+        return flags
 
 
 editors = {'sublimetext3': SublimeText3()}
