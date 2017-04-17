@@ -1,0 +1,2 @@
+include versioneer.py
+include src/virtualenv_helpers/_version.py
